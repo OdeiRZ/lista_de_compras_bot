@@ -1,79 +1,79 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
-import os
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Configuración de logging
+# Logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Token desde variable de entorno (para Railway)
-TOKEN = os.environ.get("TOKEN")
-if not TOKEN:
-    print("Error: pon tu TOKEN como variable de entorno 'TOKEN'")
-    exit(1)
+# Token del bot
+TOKEN = "8268360976:AAHXbvHk16UTcnsZs0XoeQlklrmX1j18674"
+
+# Lista de la compra con categorías
+SHOPPING_LIST = {
+    "Lácteos": ["Leche", "Yogur", "Mantequilla"],
+    "Huevos y derivados": ["Huevos", "Queso"],
+    "Panadería": ["Pan", "Bollería"],
+    "Frutas": ["Manzanas", "Plátanos", "Naranjas"],
+    "Verduras": ["Tomate", "Lechuga", "Zanahoria"],
+    "Otros": ["Aceite", "Azúcar", "Sal"]
+}
+
+# Estado inicial
+state = {item: False for category in SHOPPING_LIST.values() for item in category}
 
 
-# Lista de la compra
-SHOPPING_LIST = ["Leche", "Huevos", "Pan", "Mantequilla", "Fruta"]
-
-# Estado inicial de la lista
-state = {item: False for item in SHOPPING_LIST}
-
-
-def start(update: Update, context: CallbackContext):
-    """Enviar mensaje inicial con botones de la lista de la compra."""
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Enviar mensaje inicial con botones."""
     keyboard = [
         [InlineKeyboardButton(f"{'✅' if state[item] else '⬜'} {item}", callback_data=item)]
-        for item in SHOPPING_LIST
+        for category in SHOPPING_LIST.values() for item in category
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text("Lista de la compra:", reply_markup=reply_markup)
+    await update.message.reply_text("Lista de la compra:", reply_markup=reply_markup)
 
 
-def button(update: Update, context: CallbackContext):
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Actualizar estado al pulsar un botón."""
     query = update.callback_query
-    query.answer()
+    await query.answer()
 
     item = query.data
     state[item] = not state[item]  # Alternar estado
 
-    # Reconstruir teclado
     keyboard = [
         [InlineKeyboardButton(f"{'✅' if state[i] else '⬜'} {i}", callback_data=i)]
-        for i in SHOPPING_LIST
+        for category in SHOPPING_LIST.values() for i in category
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(text="Lista de la compra:", reply_markup=reply_markup)
+    await query.edit_message_text(text="Lista de la compra:", reply_markup=reply_markup)
 
 
-def reset(update: Update, context: CallbackContext):
+async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Resetear lista a todos sin marcar."""
     for item in state:
         state[item] = False
+
     keyboard = [
-        [InlineKeyboardButton(f"⬜ {i}", callback_data=i)] for i in SHOPPING_LIST
+        [InlineKeyboardButton(f"⬜ {i}", callback_data=i)]
+        for category in SHOPPING_LIST.values() for i in category
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text("Lista reseteada:", reply_markup=reply_markup)
+    await update.message.reply_text("Lista reseteada:", reply_markup=reply_markup)
 
 
 def main():
-    """Inicializar bot y polling."""
-    updater = Updater(TOKEN, use_context=True)
+    """Inicializar bot y polling con ApplicationBuilder."""
+    app = ApplicationBuilder().token(TOKEN).build()
 
-    dp = updater.dispatcher
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("reset", reset))
-    dp.add_handler(CallbackQueryHandler(button))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("reset", reset))
+    app.add_handler(CallbackQueryHandler(button))
 
-    updater.start_polling()
-    updater.idle()
+    app.run_polling()
 
 
 if __name__ == "__main__":
     main()
-
