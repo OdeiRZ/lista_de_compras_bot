@@ -18,9 +18,9 @@ if not TOKEN:
 STATE_FILE = "state.json"
 
 default_checklist = {
-    "Lácteos": ["Leche", "Yogur"],
-    "Verduras": ["Tomates", "Pimientos"],
-    "Otros": ["Pan", "Huevos"]
+    "MERCADONA": ["Leche", "Yogur"],
+	"ALDI": ["Tomates", "Pimientos"],
+    "CARREFOUR": ["Tomates", "Pimientos"]
 }
 
 if os.path.exists(STATE_FILE):
@@ -103,3 +103,4 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("list", show_list))
     print("Bot corriendo...")
     app.run_polling()
+
