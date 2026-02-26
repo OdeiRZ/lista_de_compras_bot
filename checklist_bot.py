@@ -3,7 +3,6 @@ import json
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# TOKEN desde variable de entorno
 TOKEN = os.environ.get("TOKEN")
 if not TOKEN:
     print("Error: TOKEN no definido")
@@ -18,12 +17,12 @@ default_checklist = {
     "Otros": ["Pan", "Huevos"]
 }
 
-# Cargar estado o crear uno nuevo
+# Cargar estado
 if os.path.exists(STATE_FILE):
     with open(STATE_FILE, "r") as f:
         data = json.load(f)
-        checklist = data["checklist"]
-        state = data["state"]
+        checklist = data.get("checklist", default_checklist)
+        state = data.get("state", {item: False for section in checklist.values() for item in section})
 else:
     checklist = default_checklist
     state = {item: False for section in checklist.values() for item in section}
@@ -34,23 +33,19 @@ def build_keyboard():
     for section, items in checklist.items():
         buttons.append([InlineKeyboardButton(f"--- {section} ---", callback_data="section")])
         for item in items:
-            prefix = "✅" if state[item] else "⬜"
+            prefix = "✅" if state.get(item, False) else "⬜"
             buttons.append([InlineKeyboardButton(f"{prefix} {item}", callback_data=item)])
     return InlineKeyboardMarkup(buttons)
 
-# Guardar estado en JSON
+# Guardar estado
 def save_state():
     with open(STATE_FILE, "w") as f:
         json.dump({"checklist": checklist, "state": state}, f)
 
-# /start
+# Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🛒 Lista de la compra",
-        reply_markup=build_keyboard()
-    )
+    await update.message.reply_text("🛒 Lista de la compra", reply_markup=build_keyboard())
 
-# Toggle checkbox
 async def toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -60,7 +55,6 @@ async def toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_state()
         await query.edit_message_reply_markup(reply_markup=build_keyboard())
 
-# /add Sección | Item
 async def add_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if "|" not in text:
@@ -74,7 +68,6 @@ async def add_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
     await update.message.reply_text(f"Item '{item}' añadido a '{section}'")
 
-# /remove Item
 async def remove_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     item = update.message.text.replace("/remove", "").strip()
     found = False
@@ -90,13 +83,12 @@ async def remove_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"Item '{item}' no encontrado")
 
-# /list
 async def show_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = "🛒 Lista de la compra:\n"
     for section, items in checklist.items():
         msg += f"\n--- {section} ---\n"
         for item in items:
-            prefix = "✅" if state[item] else "⬜"
+            prefix = "✅" if state.get(item, False) else "⬜"
             msg += f"{prefix} {item}\n"
     await update.message.reply_text(msg)
 
