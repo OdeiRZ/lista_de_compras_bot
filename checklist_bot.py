@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Token del bot
 TOKEN = "8268360976:AAHXbvHk16UTcnsZs0XoeQlklrmX1j18674"
 
-# Lista de la compra con categorías
+# Lista de la compra
 SHOPPING_LIST = {
     "Lácteos": ["Leche", "Yogur", "Mantequilla"],
     "Huevos y derivados": ["Huevos", "Queso"],
@@ -26,7 +26,7 @@ state = {item: False for category in SHOPPING_LIST.values() for item in category
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Enviar mensaje inicial con botones."""
+    """Mostrar lista de la compra con botones."""
     keyboard = [
         [InlineKeyboardButton(f"{'✅' if state[item] else '⬜'} {item}", callback_data=item)]
         for category in SHOPPING_LIST.values() for item in category
@@ -36,12 +36,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Actualizar estado al pulsar un botón."""
+    """Togglear estado del item."""
     query = update.callback_query
     await query.answer()
 
     item = query.data
-    state[item] = not state[item]  # Alternar estado
+    state[item] = not state[item]
 
     keyboard = [
         [InlineKeyboardButton(f"{'✅' if state[i] else '⬜'} {i}", callback_data=i)]
@@ -65,13 +65,14 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    """Inicializar bot y polling con ApplicationBuilder."""
+    """Ejecutar bot."""
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("reset", reset))
     app.add_handler(CallbackQueryHandler(button))
 
+    # Arrancar polling
     app.run_polling()
 
 
