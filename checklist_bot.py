@@ -1,6 +1,7 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
+import os
 
 # Configuración de logging
 logging.basicConfig(
@@ -75,3 +76,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
